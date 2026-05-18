@@ -8,20 +8,16 @@ skill-router sits alongside claude-mem in every Claude Code session. Before you 
 
 ## Install
 
-### macOS / Linux
+### macOS / Linux — one command
 
 ```bash
-git clone https://github.com/ctosOyama/skill-router.git /tmp/skill-router
-cd /tmp/skill-router
-bash install.sh
+curl -fsSL https://raw.githubusercontent.com/ctosOyama/skill-router/main/install-remote.sh | bash
 ```
 
-### Windows (PowerShell)
+### Windows — one command
 
 ```powershell
-git clone https://github.com/ctosOyama/skill-router.git $env:TEMP\skill-router
-cd $env:TEMP\skill-router
-powershell -ExecutionPolicy Bypass -File install.ps1
+git clone https://github.com/ctosOyama/skill-router.git $env:TEMP\skill-router; cd $env:TEMP\skill-router; powershell -ExecutionPolicy Bypass -File install.ps1
 ```
 
 ### Manual (all platforms)
