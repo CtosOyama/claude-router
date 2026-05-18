@@ -29,6 +29,12 @@ integrated-from:
   - "VCnoC/main-router — forced workflow chains"
 ---
 
+<div align="right">
+
+**English** | [**中文**](./SKILL_CN.md)
+
+</div>
+
 # Skill Router — Silent Intent → Best Skill Dispatcher
 
 ## 📦 Installation

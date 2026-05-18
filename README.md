@@ -1,18 +1,20 @@
+<div align="right">
+
+[**English**](./README_EN.md) | **中文**
+
+</div>
+
 # Skill Router
 
 > Claude Code 的常驻意图路由层 — 53 个技能，1 个调度器，零配置。
->
-> Always-on intent routing layer for Claude Code — 53 skills, one dispatcher, zero config.
-
-[:globe_with_meridians: 双语网站 / Bilingual Website](https://ctosoyama.github.io/claude-router)
 
 ---
 
 ## 它做了什么
 
-你每次跟 Claude Code 说话，Skill Router 会在后台自动做一件事：**你说的这句话，用哪个技能最合适？**
+你每次跟 Claude Code 说话，Skill Router 在后台自动做一件事：**你说的这句话，用哪个技能最合适？**
 
-用大白话讲，它就像一个 smart 接线员：
+就像一个 smart 接线员：
 
 | 步骤 | 做了什么 | 比喻 |
 |---|---|---|
@@ -85,7 +87,8 @@ git clone https://github.com/CtosOyama/claude-router.git $env:TEMP\skill-router;
 ```
 skill-router/
 ├── SKILL.md                 完整路由算法文档
-├── README.md                你正在读
+├── README.md                你正在读（中文版）
+├── README_EN.md             英文版
 ├── index.html               双语网站页面
 ├── install.sh               macOS/Linux 安装器
 ├── install.ps1              Windows 安装器
