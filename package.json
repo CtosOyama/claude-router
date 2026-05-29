@@ -1,0 +1,18 @@
+{
+  "name": "claude-router",
+  "version": "5.0.0",
+  "description": "Context-aware dynamic routing layer for Claude Code skills. SessionStart hook that injects computed routing context — real skill counts, desktop file hints, orchestration patterns.",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "files": [
+    "hooks/",
+    "references/",
+    "SKILL.md",
+    "install.sh",
+    "install-remote.sh"
+  ],
+  "keywords": ["claude-code", "skill", "router", "orchestration"],
+  "license": "MIT"
+}

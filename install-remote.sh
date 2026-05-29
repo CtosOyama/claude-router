@@ -4,7 +4,7 @@
 set -e
 
 REPO="https://github.com/ctosOyama/skill-router.git"
-TMPDIR="/tmp/skill-router"
+TMPDIR="$HOME/.claude/repos/skill-router"
 
 echo "📦 skill-router — one-liner installer"
 echo ""

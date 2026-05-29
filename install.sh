@@ -23,7 +23,7 @@ detect_platform() {
 # ── Check prerequisites ─────────────────────────────────
 check_prereqs() {
     echo -e "${CYAN}┌─────────────────────────────────────────┐${NC}"
-    echo -e "${CYAN}│  skill-router v4 — Universal Installer   │${NC}"
+    echo -e "${CYAN}│  skill-router v5 — Universal Installer   │${NC}"
     echo -e "${CYAN}│  Platform: ${YELLOW}$PLATFORM${CYAN}                      │${NC}"
     echo -e "${CYAN}└─────────────────────────────────────────┘${NC}"
     echo ""
@@ -126,7 +126,7 @@ verify() {
 
     # Test hook output
     if command -v node &> /dev/null; then
-        if node "$CLAUDE_SKILLS/$SKILL_NAME/hooks/session-start.js" 2>/dev/null | grep -q "skill-router"; then
+        if node "$CLAUDE_SKILLS/$SKILL_NAME/hooks/session-start.js" 2>/dev/null | grep -q "Router v5"; then
             echo -e "${GREEN}✓${NC} Hook script works (Node.js)"
         else
             echo -e "${RED}✗${NC} Hook script failed"
@@ -144,7 +144,7 @@ verify() {
 done_msg() {
     echo ""
     echo -e "${GREEN}┌─────────────────────────────────────────┐${NC}"
-    echo -e "${GREEN}│  ✅ skill-router v4 installed!           │${NC}"
+    echo -e "${GREEN}│  ✅ skill-router v5 installed!           │${NC}"
     echo -e "${GREEN}└─────────────────────────────────────────┘${NC}"
     echo ""
     echo -e "  ${CYAN}Next steps:${NC}"

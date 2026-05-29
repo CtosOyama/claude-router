@@ -1,84 +1,142 @@
 #!/usr/bin/env node
 /**
- * skill-router v4 — Always-On Router Layer
- * Cross-platform SessionStart hook: macOS / Linux / Windows
- * Injects routing context into every Claude Code session alongside claude-mem
+ * skill-router v5 — Context-Aware Dynamic Router
  *
- * Usage (registered in settings.local.json):
- *   macOS/Linux: node ~/.claude/skills/skill-router/hooks/session-start.js
- *   Windows:     node %USERPROFILE%\.claude\skills\skill-router\hooks\session-start.js
+ * What it actually computes (not prints as prose):
+ *   1. Scans ~/.claude/skills/ for real installed skills → count
+ *   2. Reads ~/Desktop/ for file extensions → maps to relevant skill hints
+ *   3. Checks for cheat-state.json → gate for cheat-* skills
+ *   4. Loads router state file → session continuity hints
+ *   5. Detects dead references (common skills not installed)
+ *   6. Multi-step orchestration hint
  *
- * Fallback: if Node.js unavailable, use session-start.sh (Unix) or session-start.ps1 (Windows)
+ * Output target: < 10 lines. Dynamic. Actually useful.
  */
 
 const os = require('os');
+const fs = require('fs');
 const path = require('path');
 
-const PLATFORM = os.platform(); // 'darwin' | 'linux' | 'win32'
 const HOME = os.homedir();
+const SKILLS_DIR = path.join(HOME, '.claude', 'skills');
+const DESKTOP = path.join(HOME, 'Desktop');
+const STATE_DIR = path.join(HOME, '.claude', 'skills', 'skill-router', 'state');
+const STATE_FILE = path.join(STATE_DIR, 'router-state.json');
+const CHEAT_STATE = path.join(HOME, 'cheat-on-content', '.cheat-state.json');
 
-// Resolve paths cross-platform
-const CLAUDE_DIR = path.join(HOME, '.claude');
-const SKILLS_DIR = path.join(CLAUDE_DIR, 'skills');
-const ROUTER_DIR = path.join(SKILLS_DIR, 'skill-router');
-const ROUTING_TABLE = path.join(ROUTER_DIR, 'references', 'routing-table.md');
-
-// Detect available skills count (fast check, no deep scan)
-let skillCount = 0;
-try {
-  const fs = require('fs');
-  const entries = fs.readdirSync(SKILLS_DIR, { withFileTypes: true });
-  skillCount = entries.filter(e => e.isDirectory() || e.isSymbolicLink()).length;
-} catch (e) {
-  skillCount = 50; // fallback estimate
+// ── 1. Skill scanner ──────────────────────────────────────────
+function scanSkills() {
+  const names = [];
+  try {
+    for (const entry of fs.readdirSync(SKILLS_DIR, { withFileTypes: true })) {
+      if (entry.isDirectory() || entry.isSymbolicLink()) {
+        const skillMd = path.join(SKILLS_DIR, entry.name, 'SKILL.md');
+        try { if (fs.statSync(skillMd).isFile()) names.push(entry.name); }
+        catch (_) { /* no SKILL.md — skip */ }
+      }
+    }
+  } catch (_) { /* skills dir missing */ }
+  return names;
 }
 
-// Platform-specific path display
-const skillsPathDisplay = PLATFORM === 'win32'
-  ? `%USERPROFILE%\\.claude\\skills\\`
-  : '~/.claude/skills/';
+// ── 2. Desktop scanner ─────────────────────────────────────────
+const EXT_TO_SKILL = {
+  '.pdf': 'pdf', '.xlsx': 'xlsx', '.xls': 'xlsx', '.csv': 'xlsx',
+  '.docx': 'docx', '.ppt': 'pptx', '.pptx': 'pptx',
+  '.png': 'canvas-design', '.jpg': 'canvas-design', '.jpeg': 'canvas-design',
+};
 
-const desktopPath = PLATFORM === 'win32'
-  ? path.join(HOME, 'Desktop')
-  : path.join(HOME, 'Desktop');
+function scanDesktop() {
+  const skills = new Set();
+  try {
+    const entries = fs.readdirSync(DESKTOP, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isFile()) continue;
+      const ext = path.extname(entry.name).toLowerCase();
+      const s = EXT_TO_SKILL[ext];
+      if (s) skills.add(s);
+    }
+  } catch (_) { /* desktop unreadable */ }
+  return [...skills];
+}
 
-// Output router context (same format as bash hook, but OS-aware)
-console.log(`<system-reminder>
-## skill-router v4 (always active · ${PLATFORM} · ${skillCount} skills)
+// ── 3. Cheat state gate ────────────────────────────────────────
+function hasCheatState() {
+  try { fs.statSync(CHEAT_STATE); return true; }
+  catch (_) { return false; }
+}
 
-You are a routing layer. Before responding to ANY request, check if a specialized skill can handle it better than native reasoning.
+// ── 4. State engine ────────────────────────────────────────────
+function loadState() {
+  try { return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')); }
+  catch (_) { return null; }
+}
 
-### 🚨 Emergency (Step -1, check FIRST)
-Keywords: 紧急/立刻/马上/崩了/挂了/救命/故障 | urgent/critical/now/ASAP/broke/production down
-→ SKIP context scan, route immediately, parallel fan-out if tied.
+function saveState(state) {
+  try {
+    fs.mkdirSync(STATE_DIR, { recursive: true });
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+  } catch (_) { /* no-op */ }
+}
 
-### Quick Route
-- 内容打分/预测/复盘 → cheat-* (no .cheat-state.json → cheat-init)
-- .pdf/.xlsx/.docx/.pptx → pdf/xlsx/docx/pptx
-- 深度调研/写报告 → deep-research → doc-coauthoring
-- 网页/登录 → web-access | 搜视频 → youtube-search | 查历史 → mem-search
-- 文档撰写 → doc-coauthoring | 代码计划 → make-plan → do | 代码审查 → review
-- 学习计划(全工具) → doc-coauthoring ∥ youtube-search ∥ mem-search
+// ── 5. Dead reference detection ────────────────────────────────
+const COMMONLY_REFERENCED = [
+  'deep-research', 'web-access', 'youtube-search', 'mem-search',
+  'pdf', 'xlsx', 'docx', 'pptx', 'canvas-design',
+  'make-plan', 'do', 'review', 'security-review',
+  'frontend-design', 'wowerpoint', 'blueprint', 'babysit',
+];
 
-### 3-Layer Fallback (Step 7)
-L1: fuzzy match ≥0.4 → route with caveat
-L2: native Claude or generic skill
-L3: ⚠️ 未找到专用工具。① git clone <url> ${skillsPathDisplay} ② 说"帮我用 web-access 找一个"
+function detectDeadRefs(installed) {
+  const set = new Set(installed);
+  return COMMONLY_REFERENCED.filter(s => !set.has(s));
+}
 
-### Learning (Step 8)
-Signals: +2(confirmed)/+1(silent)/-1(ignored)/-2(corrected)
-net≥+3→stable | net≤-2→unreliable | threshold: start 90→stable 70→mistakes 95
+// ── 6. Build output ────────────────────────────────────────────
+function buildOutput() {
+  const skills = scanSkills();
+  const deskHints = scanDesktop();
+  const state = loadState();
+  const deadRefs = detectDeadRefs(skills);
+  const cheatReady = hasCheatState();
+  const platform = os.platform();
 
-### Confidence
-score=(intentMatch×0.5)+(contextRelevance×0.3)+((1-ambiguity)×0.2)
+  const lines = [];
 
-### Patterns
-Seq: A→B | Par: A∥B∥C | Forced: code→review | security→audit | cheat→state gate
+  // Core line
+  let core = `## Router v5: ${skills.length} skills | ${platform}`;
+  if (deskHints.length > 0) core += ` | 桌面: ${deskHints.join(',')}`;
+  if (cheatReady) core += ` | cheat就绪`;
+  lines.push(core);
 
-Skills dir: ${skillsPathDisplay}
-Routing table: ${ROUTING_TABLE}
-Desktop (context scan): ${desktopPath}
-</system-reminder>`);
+  // Session continuity
+  if (state && state.skillsUsed && state.skillsUsed.length > 0) {
+    lines.push(`上次会话: ${state.skillsUsed.slice(-5).join(' → ')}`);
+  }
 
-// Signal to Claude Code harness: continue normally, don't suppress output
+  // Dead refs (only if found)
+  if (deadRefs.length > 0) {
+    lines.push(`未安装: ${deadRefs.slice(0, 5).join(', ')}`);
+  }
+
+  // Orchestration hint
+  lines.push('编排: deep-research→wowerpoint | make-plan→do | xlsx→pptx');
+
+  // Update / create state
+  if (state) {
+    state.lastSession = new Date().toISOString();
+    saveState(state);
+  } else {
+    saveState({
+      version: 1,
+      lastSession: new Date().toISOString(),
+      skillsUsed: [],
+    });
+  }
+
+  return `<system-reminder>\n${lines.join('\n')}\n</system-reminder>`;
+}
+
+// ── 7. Output ──────────────────────────────────────────────────
+console.log(buildOutput());
 console.log(JSON.stringify({ continue: true, suppressOutput: false }));
